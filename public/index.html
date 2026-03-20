@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interview Mission Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root{
+  --bg:#08080f;--surface:#111118;--card:#17171f;--card2:#1e1e28;--card3:#242430;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --purple:#7c5cfc;--pink:#e8446a;--teal:#0fd6a0;--amber:#f5a623;--blue:#3b82f6;
+  --text:#eeeeff;--muted:#7878a0;--faint:#3a3a55;
+  --mono:'IBM Plex Mono',monospace;--sans:'Outfit',sans-serif;
+  --r:14px;--r2:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(124,92,252,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(124,92,252,0.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+.bg-orb{position:fixed;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(124,92,252,0.05) 0%,transparent 65%);pointer-events:none;z-index:0;top:-250px;left:-150px;}
+.bg-orb2{position:fixed;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(15,214,160,0.04) 0%,transparent 65%);pointer-events:none;z-index:0;bottom:-150px;right:-100px;}
+.wrap{max-width:1120px;margin:auto;padding:24px 20px 100px;position:relative;z-index:1;}
+
+.hdr{padding:44px 0 36px;text-align:center;}
+.hdr-eye{font-family:var(--mono);font-size:10px;color:var(--purple);letter-spacing:4px;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:10px;}
+.hdr-eye::before,.hdr-eye::after{content:'';width:50px;height:1px;background:linear-gradient(90deg,transparent,var(--purple));}
+.hdr-eye::after{transform:scaleX(-1);}
+.hdr h1{font-size:clamp(2.2rem,5vw,3.4rem);font-weight:700;letter-spacing:-2px;line-height:1.05;background:linear-gradient(135deg,#fff 20%,rgba(124,92,252,0.75) 80%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hdr p{color:var(--muted);margin-top:10px;font-size:14px;font-weight:300;}
+
+/* API BANNER */
+.api-banner{background:var(--surface);border:1px solid rgba(124,92,252,0.3);border-radius:var(--r);padding:18px 22px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.api-label{font-family:var(--mono);font-size:10px;color:var(--purple);letter-spacing:2px;text-transform:uppercase;white-space:nowrap;}
+.api-banner input{flex:1;min-width:200px;background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:9px 14px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;transition:all .2s;}
+.api-banner input:focus{border-color:var(--purple);}
+.api-info{font-size:11px;color:var(--muted);line-height:1.5;flex:1;min-width:160px;}
+
+
+
+
+
+.stepbar{display:flex;align-items:center;justify-content:center;margin-bottom:36px;}
+.step-node{display:flex;flex-direction:column;align-items:center;gap:7px;flex:1;max-width:180px;}
+.step-circle{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--faint);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--card);transition:all .3s;position:relative;z-index:1;}
+.step-circle.active{background:var(--purple);border-color:var(--purple);color:#fff;box-shadow:0 0 22px rgba(124,92,252,0.5);}
+.step-circle.done{background:var(--teal);border-color:var(--teal);color:#08080f;font-weight:700;}
+.step-label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1.5px;text-align:center;text-transform:uppercase;}
+.step-line{flex:1;height:1.5px;background:var(--faint);max-width:90px;position:relative;top:-12px;}
+.step-line.done{background:var(--teal);}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px 30px;margin-bottom:16px;position:relative;overflow:hidden;transition:border-color .25s;}
+.panel:hover{border-color:var(--border2);}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(124,92,252,0.5),transparent);}
+.ptitle{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:22px;display:flex;align-items:center;gap:10px;}
+.pnum{width:24px;height:24px;border-radius:6px;background:rgba(124,92,252,0.12);border:1px solid rgba(124,92,252,0.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--purple);font-weight:700;flex-shrink:0;}
+
+.field{margin-bottom:15px;}
+.field label{display:block;font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;}
+.field input,.field textarea,.field select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:11px 14px;color:var(--text);font-family:var(--sans);font-size:14px;outline:none;transition:all .2s;resize:vertical;}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,92,252,0.1);}
+.field textarea{min-height:100px;line-height:1.65;font-family:var(--mono);font-size:13px;}
+.field input::placeholder,.field textarea::placeholder{color:var(--muted);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+@media(max-width:640px){.g2,.g3{grid-template-columns:1fr;}}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 22px;border-radius:var(--r2);font-family:var(--sans);font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .2s;width:100%;}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;box-shadow:none!important;}
+.btn-purple{background:var(--purple);color:#fff;}
+.btn-purple:hover:not(:disabled){background:#6a4de0;transform:translateY(-1px);box-shadow:0 8px 24px rgba(124,92,252,0.4);}
+.btn-grad{background:linear-gradient(135deg,#7c5cfc,#e8446a);color:#fff;}
+.btn-grad:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 28px rgba(232,68,106,0.35);}
+.btn-teal{background:var(--teal);color:#08080f;font-weight:600;}
+.btn-teal:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(15,214,160,0.35);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);width:auto;padding:11px 18px;}
+.btn-ghost:hover:not(:disabled){border-color:var(--border2);color:var(--text);}
+.btn-demo{background:rgba(245,166,35,0.1);color:var(--amber);border:1px solid rgba(245,166,35,0.3);width:auto;padding:9px 16px;font-size:13px;border-radius:8px;cursor:pointer;font-family:var(--sans);font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;}
+.btn-demo:hover{background:rgba(245,166,35,0.2);}
+
+.spin-wrap{display:flex;align-items:center;gap:10px;padding:14px;background:rgba(124,92,252,0.07);border:1px solid rgba(124,92,252,0.18);border-radius:10px;margin:12px 0;font-size:13px;color:var(--muted);}
+.spinner{width:16px;height:16px;border:2px solid rgba(124,92,252,0.2);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+
+.dashboard{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-top:20px;animation:fadeUp .45s ease;}
+.dc1{grid-column:span 12;}.dc6{grid-column:span 6;}
+@media(max-width:800px){.dc6{grid-column:span 12;}}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:22px;transition:all .2s;position:relative;overflow:hidden;}
+.card:hover{border-color:var(--border2);}
+.card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+.card.cp::before{background:var(--purple);}
+.card.ct::before{background:var(--teal);}
+.card.ca::before{background:var(--amber);}
+.card.cr::before{background:var(--pink);}
+.card.cb::before{background:var(--blue);}
+.ctitle{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.cdot{width:6px;height:6px;border-radius:2px;flex-shrink:0;}
+
+.score-wrap{display:flex;align-items:center;gap:22px;padding:18px;background:var(--card2);border-radius:12px;margin-bottom:14px;}
+.ring-box{position:relative;width:90px;height:90px;flex-shrink:0;}
+.ring-svg{transform:rotate(-90deg);}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ring-num{font-family:var(--mono);font-size:24px;font-weight:700;line-height:1;}
+.ring-label{font-size:10px;color:var(--muted);margin-top:2px;}
+.score-info h3{font-size:17px;font-weight:600;margin-bottom:5px;}
+.score-info p{font-size:13px;color:var(--muted);line-height:1.55;}
+.verdict{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;font-family:var(--mono);letter-spacing:.8px;margin-top:9px;}
+.v-strong{background:rgba(15,214,160,0.1);border:1px solid rgba(15,214,160,0.28);color:var(--teal);}
+.v-moderate{background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.28);color:var(--amber);}
+.v-weak{background:rgba(232,68,106,0.1);border:1px solid rgba(232,68,106,0.28);color:#f47b96;}
+
+.skill-bar-row{display:flex;align-items:center;gap:10px;margin:6px 0;}
+.skill-name{font-size:12px;min-width:160px;color:var(--text);}
+.bar-track{flex:1;height:5px;background:var(--card3);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width 1.2s ease;}
+.skill-score{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:32px;text-align:right;}
+
+.li-item{display:flex;gap:10px;padding:9px 12px;border-radius:9px;background:var(--card2);font-size:13px;margin-bottom:6px;border-left:2px solid transparent;transition:all .15s;line-height:1.55;}
+.li-item:hover{border-left-color:var(--purple);}
+.li-item.green{border-left-color:var(--teal);}
+.li-item.red{border-left-color:var(--pink);}
+.li-item.amber{border-left-color:var(--amber);}
+.li-icon{flex-shrink:0;font-size:14px;margin-top:1px;}
+.li-body strong{display:block;font-weight:600;font-size:13px;margin-bottom:2px;}
+.li-body span{color:var(--muted);font-size:12px;}
+
+.quiz-item{padding:12px 14px;background:var(--card2);border-radius:10px;margin-bottom:7px;border-left:2px solid var(--purple);}
+.quiz-type{font-family:var(--mono);font-size:9px;color:var(--purple);letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;}
+.quiz-q{font-size:13px;font-weight:500;line-height:1.5;}
+
+.day-block{background:var(--card2);border-radius:12px;padding:16px;border-top:2px solid var(--purple);}
+.day-block:nth-child(2){border-top-color:var(--pink);}
+.day-block:nth-child(3){border-top-color:var(--teal);}
+.day-hdr{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.session{margin-bottom:8px;}
+.session-time{font-family:var(--mono);font-size:9px;color:var(--amber);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
+.session-tasks{font-size:13px;color:var(--muted);line-height:1.65;}
+
+.tl-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:var(--card2);margin:5px 0;border-left:2px solid transparent;transition:all .15s;}
+.tl-row:hover{border-left-color:var(--purple);}
+.tl-row.hl{border-left-color:var(--teal);background:rgba(15,214,160,0.05);}
+.tl-time{font-family:var(--mono);font-size:11px;color:var(--amber);min-width:54px;}
+.tl-label{font-size:13px;}
+
+.sdiv{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin:10px 0 8px;display:flex;align-items:center;gap:8px;}
+.sdiv::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.banner-success{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(15,214,160,0.07);border:1px solid rgba(15,214,160,0.2);border-radius:10px;font-size:13px;color:var(--teal);margin-bottom:10px;}
+.banner-warn{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.2);border-radius:10px;font-size:13px;color:var(--amber);margin-bottom:6px;}
+.banner-error{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;background:rgba(232,68,106,0.07);border:1px solid rgba(232,68,106,0.25);border-radius:10px;font-size:13px;color:#f47b96;}
+.banner-info{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;background:rgba(124,92,252,0.07);border:1px solid rgba(124,92,252,0.18);border-radius:10px;font-size:13px;color:var(--muted);margin-bottom:10px;}
+
+.stat-row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;}
+.stat-pill{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex:1;min-width:90px;}
+.stat-val{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--purple);}
+.stat-key{font-size:11px;color:var(--muted);margin-top:2px;text-transform:capitalize;}
+
+.tech-pill{display:inline-block;padding:5px 12px;font-size:11px;border-radius:20px;background:var(--card2);color:#c8c8e8;border:1px solid var(--border);font-family:var(--mono);margin:3px;transition:all .2s;cursor:default;}
+.tech-pill:hover{transform:translateY(-2px);border-color:var(--purple);color:var(--purple);}
+
+.einfo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+.einfo-item{background:var(--card2);border-radius:9px;padding:11px 14px;}
+.einfo-label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
+.einfo-val{font-size:13px;font-weight:500;}
+@media(max-width:500px){.einfo-grid{grid-template-columns:1fr;}}
+
+.toast{position:fixed;bottom:24px;right:24px;color:#fff;font-weight:700;font-size:12px;padding:11px 20px;border-radius:12px;z-index:9999;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;font-family:var(--mono);}
+.toast.show{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div><div class="bg-orb"></div><div class="bg-orb2"></div>
+<div class="toast" id="toast"></div>
+
+<div class="wrap">
+
+  <div class="hdr">
+    <div class="hdr-eye">Interview Planner — AI Powered</div>
+    <h1>Mission Control</h1>
+    <p>Paste your JD. Get a full prep plan — works with any tech stack.</p>
+  </div>
+
+  <!-- STATUS BANNER -->
+  <div class="api-banner" style="align-items:center;">
+    <span class="api-label" style="color:var(--teal);white-space:nowrap"><i class="fas fa-satellite-dish"></i> AI Proxy</span>
+    <span id="proxyStatus" style="flex:1;font-size:13px;color:var(--muted)">
+      <span><i class="fas fa-circle-notch fa-spin"></i> Connecting to Gemini proxy...</span>
+    </span>
+    <button class="btn-demo" onclick="loadDemo()"><i class="fas fa-flask"></i> Load Demo</button>
+  </div>
+
+  </div>
+
+  <!-- STEP BAR -->
+  <div class="stepbar">
+    <div class="step-node"><div class="step-circle active" id="sc1">01</div><div class="step-label">Email</div></div>
+    <div class="step-line" id="sl1"></div>
+    <div class="step-node"><div class="step-circle" id="sc2">02</div><div class="step-label">JD Analysis</div></div>
+    <div class="step-line" id="sl2"></div>
+    <div class="step-node"><div class="step-circle" id="sc3">03</div><div class="step-label">Trip Plan</div></div>
+    <div class="step-line" id="sl3"></div>
+    <div class="step-node"><div class="step-circle" id="sc4">04</div><div class="step-label">Mission Brief</div></div>
+  </div>
+
+  <!-- PANEL 01 -->
+  <div class="panel">
+    <div class="ptitle"><div class="pnum">01</div>Parse Invitation Email</div>
+    <div class="field">
+      <label>Paste your interview invitation email</label>
+      <textarea id="emailText" rows="6" placeholder="Paste your interview invitation email here — AI will extract company, role, date, time, location, interviewer, dress code, and prep notes, then auto-fill the trip panel below..."></textarea>
+    </div>
+    <button class="btn btn-purple" id="emailBtn" onclick="parseEmail()"><i class="fas fa-bolt"></i> Extract Details from Email</button>
+    <div id="emailStatus"></div>
+    <div id="emailResults"></div>
+  </div>
+
+  <!-- PANEL 02 -->
+  <div class="panel">
+    <div class="ptitle"><div class="pnum">02</div>AI Job Description Analysis</div>
+    <div class="g2">
+      <div class="field"><label>Your name / profile</label><input id="candidateName" placeholder="e.g. Rashid — Backend Engineer, 4 yrs Python"></div>
+      <div class="field"><label>Years of experience</label><input id="expYears" placeholder="e.g. 7-8" value="7-8"></div>
+    </div>
+    <div class="field">
+      <label>Your current skills (comma-separated)</label>
+      <textarea id="candidateSkills" rows="2" placeholder="e.g. Python, FastAPI, Docker, Kubernetes, PostgreSQL, REST APIs..."></textarea>
+    </div>
+    <div class="field">
+      <label>Job Description</label>
+      <textarea id="jdText" rows="12" placeholder="Paste the full job description here..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-grad" id="jdBtn" onclick="runJDAnalyzer()" style="flex:1;min-width:200px;"><i class="fas fa-brain"></i> Analyze JD — Full 13-Section Report</button>
+      <button class="btn btn-ghost" onclick="clearJD()"><i class="fas fa-trash-alt"></i></button>
+    </div>
+    <div id="jdStatus"></div>
+  </div>
+
+  <!-- PANEL 03 -->
+  <div class="panel">
+    <div class="ptitle"><div class="pnum">03</div>Trip & Interview Details</div>
+    <div class="g2">
+      <div class="field"><label>Company Name</label><input id="company" placeholder="e.g. Acme Financial Ltd"></div>
+      <div class="field"><label>Job Role</label><input id="role" placeholder="e.g. Senior Backend Engineer"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Your Location (From)</label><input id="home" placeholder="e.g. Indapur, Maharashtra"></div>
+      <div class="field"><label>Interview Location (To)</label><input id="location" placeholder="e.g. Bandra Kurla Complex, Mumbai"></div>
+    </div>
+    <div class="g3">
+      <div class="field"><label>Interview Date</label><input id="idate" type="date"></div>
+      <div class="field"><label>Interview Time</label><input id="itime" type="time" value="10:00"></div>
+      <div class="field"><label>Mode</label>
+        <select id="imode" style="background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:11px 14px;color:var(--text);font-size:14px;outline:none;width:100%;cursor:pointer;">
+          <option value="in-person">In-person</option><option value="video">Video Call</option>
+          <option value="phone">Phone Screen</option><option value="hybrid">Hybrid</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-teal" id="planBtn" onclick="generatePlan()"><i class="fas fa-rocket"></i> Generate Full Mission Plan</button>
+    <div id="planStatus"></div>
+  </div>
+
+  <div id="dashboard"></div>
+</div>
+
+<script>
+/* ── CONFIG ── */
+let PROVIDER = 'openai';
+
+
+/* ── PROXY HEALTH CHECK ── */
+
+
+
+/* ── HELPERS ── */
+const $=id=>document.getElementById(id);
+function toast(msg,type='ok'){const t=$('toast');t.textContent=msg;t.style.background=type==='err'?'var(--pink)':'var(--teal)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+function setStep(n){for(let i=1;i<=4;i++){const c=$('sc'+i);c.classList.remove('active','done');if(i<n)c.classList.add('done');else if(i===n)c.classList.add('active');if(i<4)$('sl'+i).classList.toggle('done',i<n);}}
+function spin(id,msg){$(id).innerHTML=`<div class="spin-wrap"><div class="spinner"></div><span>${msg}</span></div>`;}
+function clr(id){$(id).innerHTML='';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function parseJSON(raw){
+  try{let t=raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a>=0&&b>a)t=t.slice(a,b+1);return JSON.parse(t);}catch{return null;}
+}
+
+/* ── AI CALL — direct to OpenAI (InfinityFree blocks server-side curl) ── */
+async function checkProxy(){
+  const el = document.getElementById('proxyStatus');
+  el.innerHTML='<span style="color:var(--muted)"><i class="fas fa-circle-notch fa-spin"></i> Connecting...</span>';
+  try{
+    const r = await fetch('/ping');
+    const d = await r.json();
+    if(d.ok){
+      el.innerHTML='<span style="color:var(--teal)"><i class="fas fa-check-circle"></i> Gemini AI connected — ready!</span>';
+    } else {
+      el.innerHTML='<span style="color:#f47b96"><i class="fas fa-times-circle"></i> Error: '+(d.error||'unknown')+'</span>';
+    }
+  }catch(e){
+    el.innerHTML='<span style="color:#f47b96"><i class="fas fa-times-circle"></i> '+e.message+'</span>';
+  }
+}
+
+window.addEventListener('DOMContentLoaded', checkProxy);
+
+async function callAI(prompt, sys='You are a senior technical recruiter.'){
+  const PROXY = '/ai';
+  let rawText = '';
+  try{
+    const r = await fetch(PROXY, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prompt: sys + '\n\n' + prompt})
+    });
+    rawText = await r.text();
+    if(!r.ok) throw new Error('HTTP '+r.status+': '+rawText.slice(0,200));
+  }catch(fetchErr){
+    // If first attempt fails (cold start), wait 3s and retry once
+    await new Promise(res=>setTimeout(res,3000));
+    const r2 = await fetch(PROXY, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prompt: sys + '\n\n' + prompt})
+    });
+    rawText = await r2.text();
+    if(!r2.ok) throw new Error('HTTP '+r2.status+': '+rawText.slice(0,200));
+  }
+  let d;
+  try{ d = JSON.parse(rawText); }
+  catch(e){ throw new Error('Bad JSON: '+rawText.slice(0,300)); }
+  if(!d.ok) throw new Error(d.error||'Proxy error');
+  if(!d.text) throw new Error('Empty response from Gemini');
+  return d.text;
+}
+
+/* ── EMAIL PARSER ── */
+async function parseEmail(){
+  const txt=$('emailText').value.trim();if(!txt){toast('Paste an email first','err');return;}
+  const btn=$('emailBtn');btn.disabled=true;spin('emailStatus','Reading email...');setStep(1);
+  try{
+    const raw=await callAI(`Extract interview details from this email. Return ONLY JSON with keys: company, role, date (YYYY-MM-DD), time (HH:MM), location, interviewer_name, interviewer_title, mode (in-person|video|phone|hybrid), dress_code, important_notes (string[]), documents_to_bring (string[]), prep_tips (string[]). null for missing.\n\nEmail:\n${txt}`,'Extract structured data from emails. Return only valid JSON, no extra text.');
+    const d=parseJSON(raw);
+    if(!d){$('emailResults').innerHTML=`<div class="banner-info"><i class="fas fa-info-circle"></i>${esc(raw)}</div>`;return;}
+    if(d.company)$('company').value=d.company;if(d.role)$('role').value=d.role;
+    if(d.location)$('location').value=d.location;if(d.time)$('itime').value=d.time;
+    if(d.date)$('idate').value=d.date;if(d.mode)$('imode').value=d.mode;
+    const fields=[['Company',d.company],['Role',d.role],['Date',d.date],['Time',d.time],['Location',d.location],['Interviewer',[d.interviewer_name,d.interviewer_title].filter(Boolean).join(' · ')],['Mode',d.mode],['Dress Code',d.dress_code]].filter(f=>f[1]);
+    let h=`<div class="banner-success"><i class="fas fa-check-circle"></i> Details extracted & auto-filled below</div><div class="einfo-grid">`;
+    fields.forEach(([k,v])=>{h+=`<div class="einfo-item"><div class="einfo-label">${k}</div><div class="einfo-val">${esc(v)}</div></div>`;});
+    h+='</div>';
+    if(d.important_notes?.length){h+=`<div class="sdiv" style="margin-top:14px">Important Notes</div>`;d.important_notes.forEach(n=>{h+=`<div class="li-item amber"><span class="li-icon">⚠</span><div class="li-body">${esc(n)}</div></div>`;});}
+    if(d.documents_to_bring?.length){h+=`<div class="sdiv">Documents to Bring</div>`;d.documents_to_bring.forEach(x=>{h+=`<div class="li-item green"><span class="li-icon"><i class="fas fa-file-alt" style="color:var(--teal)"></i></span><div class="li-body">${esc(x)}</div></div>`;});}
+    if(d.prep_tips?.length){h+=`<div class="sdiv">Prep Tips</div>`;d.prep_tips.forEach(t=>{h+=`<div class="li-item"><span class="li-icon">💡</span><div class="li-body">${esc(t)}</div></div>`;});}
+    $('emailResults').innerHTML=h;setStep(2);toast('Email parsed!');
+  }catch(e){$('emailResults').innerHTML=`<div class="banner-error"><i class="fas fa-exclamation-triangle"></i> ${esc(e.message)}</div>`;toast(e.message,'err');}
+  finally{btn.disabled=false;clr('emailStatus');}
+}
+
+/* ── JD ANALYZER ── */
+async function runJDAnalyzer(){
+  const jd=$('jdText').value.trim();if(!jd){toast('Paste a job description first','err');return;}
+  const name=$('candidateName').value.trim()||'Candidate';
+  const skills=$('candidateSkills').value.trim()||'Not specified';
+  const exp=$('expYears').value.trim()||'7-8';
+  const itime=$('itime').value||'TBD';
+  const home=$('home').value.trim()||'Unknown';
+  const loc=$('location').value.trim()||'Unknown';
+  const btn=$('jdBtn');btn.disabled=true;spin('jdStatus','Deep analyzing JD — generating 13-section report (~20 sec)...');setStep(2);
+  try{
+    const raw=await callAI(
+`Expert technical recruiter. Analyze this JD. Return ONLY valid JSON (no markdown).
+
+Candidate: ${name} | Experience: ${exp} yrs | Skills: ${skills}
+Interview: ${itime} | From: ${home} → To: ${loc}
+
+JD:
+${jd}
+
+Return JSON with EXACTLY these keys:
+{
+  "role_summary": "4-5 sentences: day-to-day work, systems built, team, business outcomes",
+  "key_technologies": [{"name":"","category":"Backend|Frontend|Cloud|Database|DevOps|BigData|Viz|Scripting","importance":"1 line"}],
+  "mandatory_skills": [{"skill":"","why":""}],
+  "nice_to_have": [{"skill":"","value":""}],
+  "experience_expectation": "What ${exp}-yr candidate must show — depth, ownership, architecture, project examples",
+  "interview_topics": [{"topic":"","hint":"1 line on depth needed"}],
+  "interview_questions": [
+    {"type":"System Design","question":""},{"type":"System Design","question":""},
+    {"type":"Coding","question":""},{"type":"Coding","question":""},{"type":"Coding","question":""},
+    {"type":"Cloud","question":""},{"type":"Cloud","question":""},{"type":"Cloud","question":""},
+    {"type":"Domain","question":""},{"type":"Domain","question":""}
+  ],
+  "resume_score": {
+    "overall": 0,
+    "breakdown": [{"area":"","score":0,"max":10,"reason":""}],
+    "verdict": "Strong Match|Moderate Match|Weak Match",
+    "summary": "2-3 sentences"
+  },
+  "skills_to_learn": [{"skill":"","priority":"Critical|High|Medium","crash_course":"specific 2-3 hr approach"}],
+  "company_expectations": "Culture, values, engineering style, red flags they look for",
+  "red_flags": ["flag1","flag2","flag3"],
+  "prep_plan": {
+    "day1": {"theme":"","morning":"","afternoon":"","evening":""},
+    "day2": {"theme":"","morning":"","afternoon":"","evening":""},
+    "day3": {"theme":"","morning":"","afternoon":"","evening":""}
+  },
+  "travel_advice": "Leave time, buffer, traffic contingency, interview day tips for ${home}→${loc} at ${itime}"
+}
+Minimums: key_technologies≥8, mandatory_skills≥5, interview_topics≥8, skills_to_learn≥5, red_flags≥3.`,
+      'Return only valid JSON. No markdown fences. Start response with {.'
+    );
+    const data=parseJSON(raw);
+    if(!data){$('jdStatus').innerHTML=`<div class="banner-error"><i class="fas fa-exclamation-triangle"></i> Could not parse response. Raw shown below.</div><pre style="font-size:11px;color:var(--muted);overflow:auto;padding:12px;background:var(--card2);border-radius:8px;margin-top:8px;max-height:300px;">${esc(raw)}</pre>`;return;}
+    window._jdData=data;renderJDDashboard(data);setStep(3);toast('Full report generated!');
+  }catch(e){$('jdStatus').innerHTML=`<div class="banner-error"><i class="fas fa-exclamation-triangle"></i> ${esc(e.message)}</div>`;toast(e.message,'err');}
+  finally{btn.disabled=false;clr('jdStatus');}
+}
+function clearJD(){['jdText','candidateSkills','candidateName'].forEach(id=>$(id).value='');clr('jdStatus');}
+
+/* ── RENDER JD DASHBOARD ── */
+function renderJDDashboard(d){
+  const sc=d.resume_score?.overall||0;
+  const scColor=sc>=70?'var(--teal)':sc>=45?'var(--amber)':'#f47b96';
+  const vc=sc>=70?'v-strong':sc>=45?'v-moderate':'v-weak';
+  const circ=(2*Math.PI*38).toFixed(2);
+  const off=(2*Math.PI*38*(1-sc/100)).toFixed(2);
+  const qByType={};(d.interview_questions||[]).forEach(q=>{const t=q.type||'General';(qByType[t]=qByType[t]||[]).push(q.question);});
+  const techByCat={};(d.key_technologies||[]).forEach(t=>{(techByCat[t.category]=techByCat[t.category]||[]).push(t);});
+  const plan=d.prep_plan||{};
+
+  let h=`<div class="dashboard">`;
+
+  /* 01 ROLE SUMMARY */
+  h+=`<div class="card cp dc1"><div class="ctitle"><span class="cdot" style="background:var(--purple)"></span>01 · Role Summary</div><p style="font-size:14px;line-height:1.8;color:var(--muted)">${esc(d.role_summary)}</p></div>`;
+
+  /* 02 TECH STACK */
+  h+=`<div class="card cb dc1"><div class="ctitle"><span class="cdot" style="background:var(--blue)"></span>02 · Key Technologies by Category</div>
+    ${Object.entries(techByCat).map(([cat,techs])=>`<div class="sdiv">${cat}</div><div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px">${techs.map(t=>`<span class="tech-pill" title="${esc(t.importance)}">${esc(t.name)}</span>`).join('')}</div>`).join('')}
+  </div>`;
+
+  /* 03 MANDATORY (left) + 08 SCORE (right) */
+  h+=`<div class="card cr dc6"><div class="ctitle"><span class="cdot" style="background:var(--pink)"></span>03 · Mandatory Skills</div>
+    ${(d.mandatory_skills||[]).map(s=>`<div class="li-item red"><span class="li-icon" style="color:#f47b96"><i class="fas fa-exclamation-circle"></i></span><div class="li-body"><strong>${esc(s.skill)}</strong><span>${esc(s.why)}</span></div></div>`).join('')}
+  </div>`;
+
+  h+=`<div class="card ct dc6"><div class="ctitle"><span class="cdot" style="background:var(--teal)"></span>08 · Resume Alignment Score</div>
+    <div class="score-wrap">
+      <div class="ring-box">
+        <svg class="ring-svg" width="90" height="90" viewBox="0 0 90 90">
+          <circle cx="45" cy="45" r="38" fill="none" stroke="var(--card3)" stroke-width="7"/>
+          <circle cx="45" cy="45" r="38" fill="none" stroke="${scColor}" stroke-width="7" stroke-dasharray="${circ}" stroke-dashoffset="${off}" stroke-linecap="round"/>
+        </svg>
+        <div class="ring-center"><div class="ring-num" style="color:${scColor}">${sc}</div><div class="ring-label">/ 100</div></div>
+      </div>
+      <div class="score-info"><h3>Fit Score</h3><p>${esc(d.resume_score?.summary)}</p><span class="verdict ${vc}">${esc(d.resume_score?.verdict)}</span></div>
+    </div>
+    ${(d.resume_score?.breakdown||[]).map(b=>`<div class="skill-bar-row"><span class="skill-name">${esc(b.area)}</span><div class="bar-track"><div class="bar-fill" style="width:${((b.score/b.max)*100).toFixed(0)}%;background:${b.score>=7?'var(--teal)':b.score>=4?'var(--amber)':'#f47b96'}"></div></div><span class="skill-score">${b.score}/${b.max}</span></div>`).join('')}
+  </div>`;
+
+  /* 04 NICE TO HAVE + 05 EXPERIENCE */
+  h+=`<div class="card ct dc6"><div class="ctitle"><span class="cdot" style="background:var(--teal)"></span>04 · Nice-to-Have Skills</div>
+    ${(d.nice_to_have||[]).map(s=>`<div class="li-item green"><span class="li-icon" style="color:var(--teal)"><i class="fas fa-plus-circle"></i></span><div class="li-body"><strong>${esc(s.skill)}</strong><span>${esc(s.value)}</span></div></div>`).join('')}
+  </div>`;
+  h+=`<div class="card ca dc6"><div class="ctitle"><span class="cdot" style="background:var(--amber)"></span>05 · Experience Expectation</div><p style="font-size:13px;line-height:1.78;color:var(--muted)">${esc(d.experience_expectation)}</p></div>`;
+
+  /* 06 TOPICS + 07 QUESTIONS */
+  h+=`<div class="card cp dc6"><div class="ctitle"><span class="cdot" style="background:var(--purple)"></span>06 · Likely Interview Topics</div>
+    ${(d.interview_topics||[]).map((t,i)=>`<div class="li-item"><span class="li-icon" style="font-family:var(--mono);font-size:12px;color:var(--purple);min-width:22px">${String(i+1).padStart(2,'0')}</span><div class="li-body"><strong>${esc(t.topic)}</strong><span>${esc(t.hint)}</span></div></div>`).join('')}
+  </div>`;
+  h+=`<div class="card cb dc6"><div class="ctitle"><span class="cdot" style="background:var(--blue)"></span>07 · 10 Sample Interview Questions</div>
+    ${Object.entries(qByType).map(([type,qs])=>`<div class="sdiv">${type}</div>${qs.map(q=>`<div class="quiz-item"><div class="quiz-type">${esc(type)}</div><div class="quiz-q">${esc(q)}</div></div>`).join('')}`).join('')}
+  </div>`;
+
+  /* 09 SKILLS TO LEARN */
+  h+=`<div class="card cr dc1"><div class="ctitle"><span class="cdot" style="background:var(--pink)"></span>09 · Skills to Learn Before Interview</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px">
+      ${(d.skills_to_learn||[]).map(s=>{const pc=s.priority==='Critical'?'red':s.priority==='High'?'amber':'green';const cc=s.priority==='Critical'?'var(--pink)':s.priority==='High'?'var(--amber)':'var(--teal)';return`<div class="li-item ${pc}"><span class="li-icon" style="color:${cc}"><i class="fas fa-graduation-cap"></i></span><div class="li-body"><strong>${esc(s.skill)} <span style="font-size:10px;font-family:var(--mono);color:${cc};font-weight:700">[${esc(s.priority)}]</span></strong><span>${esc(s.crash_course)}</span></div></div>`;}).join('')}
+    </div>
+  </div>`;
+
+  /* 10 COMPANY + 11 RED FLAGS */
+  h+=`<div class="card ca dc6"><div class="ctitle"><span class="cdot" style="background:var(--amber)"></span>10 · Company Expectations</div><p style="font-size:13px;line-height:1.78;color:var(--muted)">${esc(d.company_expectations)}</p></div>`;
+  h+=`<div class="card cr dc6"><div class="ctitle"><span class="cdot" style="background:var(--pink)"></span>11 · Red Flags in JD</div>
+    ${(d.red_flags||[]).map(f=>`<div class="banner-warn"><i class="fas fa-flag"></i> ${esc(f)}</div>`).join('')}
+  </div>`;
+
+  /* 12 PREP PLAN */
+  h+=`<div class="card cp dc1"><div class="ctitle"><span class="cdot" style="background:var(--purple)"></span>12 · 3-Day Interview Preparation Plan</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+      ${['day1','day2','day3'].map((dk,i)=>{const day=plan[dk]||{};return`<div class="day-block"><div class="day-hdr"><i class="fas fa-calendar-day"></i> Day ${i+1} — ${esc(day.theme)}</div><div class="session"><div class="session-time">Morning</div><div class="session-tasks">${esc(day.morning)}</div></div><div class="session" style="margin-top:10px"><div class="session-time">Afternoon</div><div class="session-tasks">${esc(day.afternoon)}</div></div><div class="session" style="margin-top:10px"><div class="session-time">Evening</div><div class="session-tasks">${esc(day.evening)}</div></div></div>`;}).join('')}
+    </div>
+  </div>`;
+
+  /* 13 TRAVEL */
+  h+=`<div class="card ct dc1"><div class="ctitle"><span class="cdot" style="background:var(--teal)"></span>13 · Travel Advice</div><p style="font-size:13px;line-height:1.78;color:var(--muted)">${esc(d.travel_advice||'No travel info provided.')}</p></div>`;
+
+  h+='</div>';
+  $('dashboard').innerHTML=h;
+  $('dashboard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ── MISSION PLAN ── */
+async function generatePlan(){
+  const company=$('company').value.trim();if(!company){toast('Enter company name first','err');return;}
+  const role=$('role').value.trim(),home=$('home').value.trim(),loc=$('location').value.trim();
+  const idate=$('idate').value,itime=$('itime').value,imode=$('imode').value;
+  const btn=$('planBtn');btn.disabled=true;spin('planStatus','Generating mission brief...');setStep(3);
+  try{
+    const jdData=window._jdData;
+    const ctx=jdData?`Score:${jdData.resume_score?.overall}/100. Critical gaps:${(jdData.skills_to_learn||[]).filter(s=>s.priority==='Critical').map(s=>s.skill).join(', ')||'none'}.`:'No JD analysis.';
+    const raw=await callAI(
+`Interview mission plan. Return ONLY valid JSON.
+Company:${company} | Role:${role||'N/A'} | From:${home||'N/A'} | To:${loc||'N/A'} | Date:${idate||'N/A'} | Time:${itime} | Mode:${imode}
+${ctx}
+
+JSON:
+{
+  "mission_title": "catchy title",
+  "overview": "2-3 sentence mission brief",
+  "timeline": [{"time":"HH:MM","label":"action","highlight":true}],
+  "day_checklist": {
+    "night_before":["task"],"morning_of":["task"],"one_hour_before":["task"],
+    "during_interview":["tip"],"after_interview":["task"]
+  },
+  "quick_stats":{"travel_time":"","leave_by":"","buffer":"","mode":"${imode}"},
+  "confidence_boosters":["tip1","tip2","tip3","tip4"],
+  "questions_to_ask_them":["q1","q2","q3","q4","q5"]
+}`,
+      'Return only valid JSON, no markdown.'
+    );
+    const data=parseJSON(raw);
+    if(!data){$('planStatus').innerHTML=`<div class="banner-error">Could not parse plan.</div>`;return;}
+    renderMissionPlan(data,company,role);setStep(4);toast('Mission plan ready!');
+  }catch(e){$('planStatus').innerHTML=`<div class="banner-error"><i class="fas fa-exclamation-triangle"></i> ${esc(e.message)}</div>`;toast(e.message,'err');}
+  finally{btn.disabled=false;clr('planStatus');}
+}
+
+function renderMissionPlan(d,company,role){
+  const extra=`<div style="margin-top:28px">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--teal);letter-spacing:4px;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px"><span>Mission Plan</span><span style="flex:1;height:1px;background:var(--border)"></span></div>
+    <div class="dashboard">
+      <div class="card ct dc1">
+        <div class="ctitle"><span class="cdot" style="background:var(--teal)"></span>Mission Brief · ${esc(company)} — ${esc(role)}</div>
+        <h2 style="font-size:22px;font-weight:700;letter-spacing:-0.5px;margin-bottom:10px">${esc(d.mission_title)}</h2>
+        <p style="font-size:14px;color:var(--muted);line-height:1.7">${esc(d.overview)}</p>
+        <div class="stat-row" style="margin-top:16px">${Object.entries(d.quick_stats||{}).map(([k,v])=>`<div class="stat-pill"><div class="stat-val">${esc(String(v))}</div><div class="stat-key">${k.replace(/_/g,' ')}</div></div>`).join('')}</div>
+      </div>
+      <div class="card cp dc6">
+        <div class="ctitle"><span class="cdot" style="background:var(--purple)"></span>Interview Day Timeline</div>
+        ${(d.timeline||[]).map(t=>`<div class="tl-row ${t.highlight?'hl':''}"><span class="tl-time">${esc(t.time)}</span><span class="tl-label">${esc(t.label)}</span></div>`).join('')}
+      </div>
+      <div class="card ca dc6">
+        <div class="ctitle"><span class="cdot" style="background:var(--amber)"></span>Questions to Ask the Interviewer</div>
+        ${(d.questions_to_ask_them||[]).map((q,i)=>`<div class="li-item"><span class="li-icon" style="font-family:var(--mono);font-size:11px;color:var(--amber);min-width:22px">${String(i+1).padStart(2,'0')}</span><div class="li-body">${esc(q)}</div></div>`).join('')}
+      </div>
+      <div class="card cb dc1">
+        <div class="ctitle"><span class="cdot" style="background:var(--blue)"></span>Interview Day Checklist</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
+          ${Object.entries(d.day_checklist||{}).map(([phase,tasks])=>`<div><div class="sdiv">${phase.replace(/_/g,' ')}</div>${(tasks||[]).map(t=>`<div class="li-item green"><span class="li-icon" style="color:var(--teal)"><i class="fas fa-check-circle"></i></span><div class="li-body">${esc(t)}</div></div>`).join('')}</div>`).join('')}
+        </div>
+      </div>
+      <div class="card ct dc1">
+        <div class="ctitle"><span class="cdot" style="background:var(--teal)"></span>Confidence Boosters</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">${(d.confidence_boosters||[]).map(b=>`<div style="flex:1;min-width:200px;background:rgba(15,214,160,0.06);border:1px solid rgba(15,214,160,0.18);border-radius:10px;padding:14px;font-size:13px;line-height:1.65;color:var(--muted)">${esc(b)}</div>`).join('')}</div>
+      </div>
+    </div>
+  </div>`;
+  $('dashboard').innerHTML+= extra;
+  document.querySelector('#dashboard > div:last-child').scrollIntoView({behavior:'smooth'});
+}
+
+/* ── DEMO DATA ── */
+function loadDemo(){
+  $('candidateName').value='Demo Candidate';$('expYears').value='7-8';
+  $('candidateSkills').value='Python, FastAPI, Docker, Kubernetes basics, PostgreSQL, REST APIs, Git';
+  $('company').value='Acme Financial Services';$('role').value='Python Full Stack Developer';
+  $('home').value='Indapur, Maharashtra';$('location').value='Bandra Kurla Complex, Mumbai';
+  $('itime').value='11:00';$('idate').value=new Date(Date.now()+3*86400000).toISOString().split('T')[0];
+  $('jdText').value=`Python Full Stack Developer
+Requirements
+• Develop highly scalable applications in Core Python.
+• Hands-on with Python web frameworks such as Django, Flask, or FastAPI.
+• Experience working on SQL with ability to run various data analytics tasks and queries.
+• Exposure to JavaScript technologies (preferably React)
+• Exposure to Azure Databricks environment is desirable (PySpark, notebooks, integrate repos, job workflows, delta lake, unity catalog etc)
+• Exposure to Azure environment and various interconnected Azure components (Functions, App Service, Containers etc.).
+• Knowledge on Financial domain and mainly Risk management is highly desirable
+
+Qualifications
+• 8+ years of prior experience as a developer in the required technologies
+
+CORE TECHNOLOGIES
+• Scripting: Python, SQL, Bash, PySpark
+• Web frameworks: Django, Flask, or FastAPI.
+• Frontend Technologies: ReactJS, JavaScript
+• Azure: Azure Databricks, Azure Synapse Analytics, Azure Functions, Azure Data Lake Storage Gen2, Azure Event Grid, Azure Event Hubs, Azure Service Bus, Azure Key Vault, Azure Monitor, Azure Log Analytics, Azure API Management (APIM), Azure DevOps.
+• Databases: SQL Server, Oracle, PostgreSQL, Delta Lake
+• Big Data: Apache Spark
+• Version Control: GitHub, Git, Azure DevOps
+• Visualization: Power BI & Integration with REST APIs for custom dashboards.
+• Data Integration & Workflow Orchestration: Azure Data Factory, Databricks Workflows`;
+
+  const demo={
+    role_summary:"This is a senior Python Full Stack Developer role at a financial services firm, focused on building and maintaining data-intensive applications for risk management and financial analytics. Day-to-day work involves designing scalable Python microservices (primarily FastAPI), building Azure Databricks pipelines with PySpark, writing complex SQL queries for risk reporting, and integrating across a wide Azure services ecosystem. You'll work alongside data engineers, risk analysts, and frontend teams to deliver end-to-end solutions. The role sits at the intersection of backend engineering, cloud data engineering, and financial domain expertise — meaning you need breadth across all three layers.",
+    key_technologies:[
+      {name:"Python",category:"Backend",importance:"Core language for all services and data processing"},
+      {name:"FastAPI",category:"Backend",importance:"Primary framework for REST APIs — async-first, production grade"},
+      {name:"Django",category:"Backend",importance:"Admin/portal UIs and secondary services"},
+      {name:"PySpark",category:"BigData",importance:"Distributed processing on Databricks — central to the data pipeline"},
+      {name:"SQL",category:"Scripting",importance:"Heavy analytics queries, risk aggregation, window functions"},
+      {name:"Bash",category:"Scripting",importance:"Automation and deployment scripts"},
+      {name:"ReactJS",category:"Frontend",importance:"Dashboard and risk portal frontends"},
+      {name:"Azure Databricks",category:"Cloud",importance:"Central big data platform — notebooks, jobs, Delta Lake"},
+      {name:"Azure Event Hubs",category:"Cloud",importance:"Real-time event streaming for risk events"},
+      {name:"Azure Service Bus",category:"Cloud",importance:"Reliable message queuing between services"},
+      {name:"Azure Key Vault",category:"Cloud",importance:"Secret management — all credentials pass through here"},
+      {name:"Azure APIM",category:"Cloud",importance:"API gateway managing all exposed service endpoints"},
+      {name:"Delta Lake",category:"Database",importance:"ACID-compliant data lake — replaces Parquet with versioning"},
+      {name:"PostgreSQL",category:"Database",importance:"Microservice databases"},
+      {name:"Power BI",category:"Viz",importance:"Risk dashboards and business reporting"},
+      {name:"Azure Data Factory",category:"Cloud",importance:"ETL orchestration and data movement across services"}
+    ],
+    mandatory_skills:[
+      {skill:"Core Python (advanced)",why:"All services and pipelines are Python-first — must know async, OOP, packaging"},
+      {skill:"FastAPI / Django / Flask",why:"REST API design is central — expect a live coding round on this"},
+      {skill:"SQL analytics (complex)",why:"Risk reporting requires window functions, CTEs, query plan optimization"},
+      {skill:"Azure cloud (general)",why:"The entire infrastructure is Azure — you must speak the platform fluently"},
+      {skill:"Git / Azure DevOps CI/CD",why:"Version control and pipeline automation are non-negotiable at this seniority"},
+      {skill:"8+ years experience",why:"Signals ability to own architecture decisions without hand-holding"}
+    ],
+    nice_to_have:[
+      {skill:"Azure Databricks + PySpark",value:"Listed as desirable but is the core differentiator — shortlists will favor this heavily"},
+      {skill:"Financial / Risk domain",value:"Allows credible conversations with risk analysts and business stakeholders"},
+      {skill:"ReactJS",value:"Full-stack ownership of dashboard features without depending on a separate team"},
+      {skill:"Power BI",value:"Risk reporting dashboards are a direct deliverable in finance teams"},
+      {skill:"Unity Catalog",value:"Data governance increasingly required in regulated financial environments"}
+    ],
+    experience_expectation:"At 7-8 years you must have owned at least 2-3 full systems end-to-end. Interviewers will probe architecture decisions: why did you choose this database, how did you handle this scaling issue, what would you do differently. For Azure you must speak confidently about cloud-native patterns even if not Databricks-specific. SQL expect a live writing round — window functions, recursive CTEs, query plan analysis. Financial domain at this level means explaining VaR, credit risk, and position limits without pausing to think. War stories about production incidents and architectural pivots are expected.",
+    interview_topics:[
+      {topic:"Python async & scalability",hint:"asyncio, FastAPI async patterns, connection pooling, GIL implications"},
+      {topic:"Azure Databricks & PySpark",hint:"Lazy evaluation, DAG optimization, Delta MERGE, partitioning strategies"},
+      {topic:"SQL analytics deep dive",hint:"Window functions, CTEs, execution plans, index strategy on large datasets"},
+      {topic:"Azure messaging services",hint:"Event Hubs vs Service Bus vs Event Grid — exact use cases for each"},
+      {topic:"Delta Lake architecture",hint:"ACID, time travel, schema evolution, Medallion Bronze/Silver/Gold"},
+      {topic:"REST API design at scale",hint:"Versioning, OAuth2/JWT, rate limiting, APIM policy configuration"},
+      {topic:"Financial risk concepts",hint:"VaR, market risk, credit risk, position reconciliation, P&L"},
+      {topic:"CI/CD with Azure DevOps",hint:"Branch strategy, pipeline design, automated test gates, rollback"},
+      {topic:"Data security in Azure",hint:"Managed identities, Key Vault integration, RBAC on Databricks"},
+      {topic:"System design for data pipelines",hint:"Design an end-to-end real-time risk pipeline with latency SLA"}
+    ],
+    interview_questions:[
+      {type:"System Design",question:"Design a real-time risk event processing pipeline: trades flow in via Azure Event Hubs, must be aggregated into position-level risk metrics under 5 seconds, stored in Delta Lake, surfaced via FastAPI. Walk through your full architecture."},
+      {type:"System Design",question:"Design a multi-tenant financial data platform on Azure Databricks where each client's data is isolated, governed via Unity Catalog, and queryable through a Python service with row-level security."},
+      {type:"Coding",question:"Write a PySpark transformation that reads raw trades from Delta Lake, calculates daily P&L per portfolio using window functions, and upserts results back using MERGE to prevent duplicates."},
+      {type:"Coding",question:"In FastAPI, implement an endpoint with dependency-injected DB session, background task for async processing, OAuth2 JWT authentication, and rate limiting — explain every design decision."},
+      {type:"Coding",question:"Write a SQL query using window functions to find the top 3 positions by unrealized P&L within each risk category, showing the running daily total across all positions."},
+      {type:"Cloud",question:"Azure Event Hubs vs Service Bus vs Event Grid — which do you choose for: (a) real-time trade streaming at 10k/sec, (b) guaranteed-order payment processing, (c) reacting to a blob file upload?"},
+      {type:"Cloud",question:"How do you securely access Azure Key Vault secrets from a Python FastAPI service running on Azure Container Apps without any hardcoded credentials anywhere in the codebase?"},
+      {type:"Cloud",question:"Explain the Medallion architecture in Azure Databricks end-to-end. How do you implement Bronze→Silver→Gold layers, apply schema enforcement at each layer, and add governance via Unity Catalog?"},
+      {type:"Domain",question:"What is Value at Risk (VaR)? Walk me through building a data pipeline that computes daily 95% VaR across a portfolio using historical simulation — from raw trade data to the final risk number."},
+      {type:"Domain",question:"In risk management, what does 'position reconciliation' mean? What are the common data quality failures and how would you detect, alert, and remediate them in a Databricks pipeline?"}
+    ],
+    resume_score:{
+      overall:52,
+      breakdown:[
+        {area:"Core Python",score:9,max:10,reason:"FastAPI confirmed — strong base"},
+        {area:"FastAPI / Web frameworks",score:8,max:10,reason:"FastAPI solid; Django/Flask unknown"},
+        {area:"SQL analytics",score:5,max:10,reason:"PostgreSQL listed but analytics depth unclear"},
+        {area:"Azure Databricks / PySpark",score:2,max:10,reason:"Critical gap — not in profile"},
+        {area:"Azure ecosystem (broad)",score:3,max:10,reason:"Docker/K8s shows cloud comfort; Azure-specific gaps"},
+        {area:"ReactJS / Frontend",score:3,max:10,reason:"Not in listed skills"},
+        {area:"Financial domain",score:1,max:10,reason:"Not mentioned — significant gap"},
+        {area:"Delta Lake / Big Data",score:2,max:10,reason:"No Spark/Delta listed"}
+      ],
+      verdict:"Moderate Match",
+      summary:"Strong Python and FastAPI base provides a good foundation. The role's key differentiators — Azure Databricks, PySpark, Delta Lake, and financial risk domain — are absent from the current profile. With focused 3-day preparation the gap is closable enough to clear a first-round interview."
+    },
+    skills_to_learn:[
+      {skill:"Azure Databricks (notebooks, jobs, repos)",priority:"Critical",crash_course:"Sign up for Databricks Community Edition (free). Spend 2 hrs: create a cluster, write a notebook, read CSV into DataFrame, apply transformations, write to Delta format. Watch the Databricks Quickstart series on YouTube."},
+      {skill:"PySpark — DataFrame API",priority:"Critical",crash_course:"Focus on: select/filter/groupBy/join/window functions (Window.partitionBy/orderBy). Avoid RDD API. Practice on Community Edition with real CSV data. 2-3 hrs of hands-on beats watching videos."},
+      {skill:"Delta Lake — ACID, MERGE, time travel",priority:"Critical",crash_course:"Read Delta Lake docs: MERGE statement, VERSION AS OF (time travel), OPTIMIZE + ZORDER, schema enforcement. Write your own one-pager summary. 90 minutes is enough to speak confidently in an interview."},
+      {skill:"Azure Event Hubs vs Service Bus vs Event Grid",priority:"High",crash_course:"Read the official Microsoft comparison (20 min). Build a cheat sheet: Event Hubs=streaming/Kafka, Service Bus=reliable queue, Event Grid=reactive. Know the exact trigger for choosing each one."},
+      {skill:"Financial risk basics (VaR, market risk)",priority:"High",crash_course:"Investopedia: Value at Risk (30 min). YouTube: 'Introduction to Market Risk' (45 min). Know: VaR definition, historical vs parametric simulation, position limits, P&L, risk aggregation. Enough to not look blank."},
+      {skill:"SQL window functions & CTEs",priority:"Medium",crash_course:"Practice on LeetCode SQL hard section: ROW_NUMBER, RANK, LAG/LEAD, PARTITION BY, recursive CTEs. Solve 5 hard problems in one session — muscle memory beats theory here."},
+      {skill:"ReactJS fundamentals",priority:"Medium",crash_course:"Official React docs 'Quick Start' tutorial (2 hrs): useState, useEffect, fetch + REST API calls, component structure. Enough to credibly answer 'exposure to React' questions."}
+    ],
+    company_expectations:"This is a large financial institution or data-heavy fintech with a mature Azure platform. They value candidates who communicate fluently with risk analysts and business stakeholders — soft skills matter here as much as technical depth. Engineering culture is process-oriented with strong governance, security compliance (Key Vault, Unity Catalog, RBAC), and audit trails. They will red-flag: candidates who only work in one layer, anyone who hasn't worked in a regulated environment, and candidates who can't justify architecture decisions under pressure.",
+    red_flags:[
+      "Stack lists 25+ Azure services — this is a wishlist. Ask which 5-6 are used daily in the first interview round.",
+      "Both heavy big data (PySpark/Databricks) and frontend (React) for one role — likely split across a team, verify this upfront.",
+      "'Highly desirable' for Databricks and financial domain is misleading — in a financial firm these are effectively required to be competitive.",
+      "No team size, Agile/Scrum process, or on-call expectations mentioned — could indicate a siloed or process-heavy environment.",
+      "No salary range given — standard for finance but clarify the comp band early to avoid wasting rounds."
+    ],
+    prep_plan:{
+      day1:{theme:"Python Depth + Databricks Sprint",morning:"Review FastAPI advanced: dependency injection, background tasks, OAuth2/JWT, middleware. Build a sample rate-limited service. (3 hrs)",afternoon:"Databricks Community Edition: create cluster, notebook, PySpark transformations, read/write Delta Lake. (3 hrs)",evening:"Delta Lake: ACID transactions, time travel, MERGE statement, OPTIMIZE. Write your own 1-page cheat sheet. (1.5 hrs)"},
+      day2:{theme:"Azure Ecosystem + SQL Analytics",morning:"Azure messaging services: read official comparison docs, build Event Hubs vs Service Bus vs Event Grid 1-pager. Then read Azure Data Factory vs Databricks Workflows basics. (2.5 hrs)",afternoon:"SQL practice: 5 complex queries using window functions and CTEs on LeetCode SQL hard. Timed. (2.5 hrs)",evening:"Azure Key Vault integration with Python managed identities. APIM policy basics. (1.5 hrs)"},
+      day3:{theme:"Domain Knowledge + Mock Interview",morning:"Financial risk crash course: VaR (Investopedia 30 min), market risk YouTube intro (45 min). Learn: position limits, P&L reconciliation, risk aggregation. (2.5 hrs)",afternoon:"Mock interview: answer all 10 sample questions out loud, timed. Prepare 3 STAR stories: scalability, data pipeline, cross-team collaboration. (3 hrs)",evening:"Prepare 5 questions to ask the interviewer. Review resume against JD vocabulary. Sleep by 10pm."}
+    },
+    travel_advice:"From Indapur, Maharashtra to Bandra Kurla Complex, Mumbai is approximately 180 km — roughly 3.5–4.5 hours by road depending on traffic. For an 11:00 AM interview, leave no later than 6:00 AM to account for Mumbai morning congestion (BKC is a major business district with heavy traffic after 8:30 AM). Strongly recommended: travel the evening before and stay overnight near BKC — this eliminates all travel risk. If same-day: take the Pune-Mumbai Expressway (NH48), use Google Maps live traffic, aim to reach BKC by 10:00 AM giving a 60-minute buffer. Save the interviewer's phone number in case of delays."
+  };
+  window._jdData=demo;
+  renderJDDashboard(demo);
+  setStep(3);
+  toast('Demo loaded — all 13 sections rendered! Fill trip panel and click Generate Mission Plan.');
+}
+</script>
+</body>
+</html>
